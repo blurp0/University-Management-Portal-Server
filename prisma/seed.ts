@@ -1,5 +1,6 @@
 import { PrismaClient, Role, Semester, Gender, PaymentType, PaymentStatus, EnrollmentStatus } from './generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import bcrypt from 'bcrypt';
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
@@ -7,8 +8,23 @@ const adapter = new PrismaPg({
 
 const prisma = new PrismaClient({ adapter });
 
+const SALT_ROUNDS = 12;
+const DEFAULT_PASSWORD = 'password123';
+
 async function main() {
   console.log('Seeding database...');
+
+  // Clear existing data (order matters due to foreign keys)
+  await prisma.payment.deleteMany();
+  await prisma.grade.deleteMany();
+  await prisma.enrollment.deleteMany();
+  await prisma.section.deleteMany();
+  await prisma.course.deleteMany();
+  await prisma.student.deleteMany();
+  await prisma.faculty.deleteMany();
+  await prisma.department.deleteMany();
+  await prisma.user.deleteMany();
+  console.log('Cleared existing data.');
 
   // Create Departments
   const csDept = await prisma.department.create({
@@ -36,9 +52,12 @@ async function main() {
   });
 
   // Create Users (Admin, Faculty, Students)
+  const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, SALT_ROUNDS);
+
   const adminUser = await prisma.user.create({
     data: {
       email: 'admin@university.edu',
+      password: hashedPassword,
       role: Role.ADMIN,
       isVerified: true,
     },
@@ -47,6 +66,7 @@ async function main() {
   const facultyUser1 = await prisma.user.create({
     data: {
       email: 'john.smith@university.edu',
+      password: hashedPassword,
       role: Role.FACULTY,
       isVerified: true,
     },
@@ -55,6 +75,7 @@ async function main() {
   const facultyUser2 = await prisma.user.create({
     data: {
       email: 'sarah.johnson@university.edu',
+      password: hashedPassword,
       role: Role.FACULTY,
       isVerified: true,
     },
@@ -63,6 +84,7 @@ async function main() {
   const studentUser1 = await prisma.user.create({
     data: {
       email: 'mike.wilson@student.university.edu',
+      password: hashedPassword,
       role: Role.STUDENT,
       isVerified: true,
     },
@@ -71,6 +93,7 @@ async function main() {
   const studentUser2 = await prisma.user.create({
     data: {
       email: 'emily.davis@student.university.edu',
+      password: hashedPassword,
       role: Role.STUDENT,
       isVerified: true,
     },
