@@ -1,0 +1,242 @@
+generator client {
+  provider = "prisma-client"
+  output   = "./generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==================== ENUMS ====================
+
+enum Role {
+  STUDENT
+  FACULTY
+  ADMIN
+}
+
+enum Semester {
+  FALL
+  SPRING
+  SUMMER
+}
+
+enum EnrollmentStatus {
+  ENROLLED
+  DROPPED
+  COMPLETED
+}
+
+enum PaymentType {
+  TUITION
+  FEES
+  HOUSING
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+// ==================== MODELS ====================
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String?
+  role          Role      @default(STUDENT)
+  provider      String?
+  providerId    String?
+  avatar        String?
+  isVerified    Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  lastLogin     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  student       Student?
+  faculty       Faculty?
+
+  @@map("users")
+}
+
+model Student {
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studentId     String    @unique
+  firstName     String
+  lastName      String
+  middleName    String?
+  gender        Gender?
+  dateOfBirth   DateTime?
+  phone         String?
+  address       String?
+  city          String?
+  state         String?
+  zipCode       String?
+  country       String?   @default("US")
+  departmentId  String
+  department    Department @relation(fields: [departmentId], references: [id])
+  enrollmentYear Int
+  gpa           Float?    @default(0.0)
+  creditsEarned Int?      @default(0)
+  status        String?   @default("ACTIVE")
+  enrollments   Enrollment[]
+  grades        Grade[]
+  payments      Payment[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("students")
+}
+
+model Faculty {
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeeId    String    @unique
+  firstName     String
+  lastName      String
+  phone         String?
+  office        String?
+  departmentId  String
+  department    Department @relation(fields: [departmentId], references: [id])
+  hireDate      DateTime
+  title         String?
+  sections      Section[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("faculty")
+}
+
+model Department {
+  id            String    @id @default(uuid())
+  name          String    @unique
+  code          String    @unique
+  description   String?
+  headId        String?
+  students      Student[]
+  faculty       Faculty[]
+  courses       Course[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("departments")
+}
+
+model Course {
+  id            String    @id @default(uuid())
+  name          String
+  code          String    @unique
+  description   String?
+  credits       Int
+  departmentId  String
+  department    Department @relation(fields: [departmentId], references: [id])
+  prerequisites String[]
+  isActive      Boolean   @default(true)
+  sections      Section[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("courses")
+}
+
+model Section {
+  id            String    @id @default(uuid())
+  courseId       String
+  course        Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  facultyId     String?
+  faculty       Faculty?  @relation(fields: [facultyId], references: [id])
+  semester      Semester
+  year          Int
+  sectionNumber String
+  capacity      Int
+  enrolled      Int       @default(0)
+  room          String?
+  schedule      String?
+  enrollments   Enrollment[]
+  grades        Grade[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([courseId, semester, year, sectionNumber])
+  @@map("sections")
+}
+
+model Enrollment {
+  id            String    @id @default(uuid())
+  studentId     String
+  student       Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  sectionId     String
+  section       Section   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  status        EnrollmentStatus @default(ENROLLED)
+  enrolledAt    DateTime  @default(now())
+  droppedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([studentId, sectionId])
+  @@map("enrollments")
+}
+
+model Grade {
+  id            String    @id @default(uuid())
+  studentId     String
+  student       Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  sectionId     String
+  section       Section   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  grade         String
+  gpa           Float?
+  comments      String?
+  gradedAt      DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([studentId, sectionId])
+  @@map("grades")
+}
+
+model Payment {
+  id            String    @id @default(uuid())
+  studentId     String
+  student       Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  amount        Decimal   @db.Decimal(10, 2)
+  currency      String    @default("USD")
+  type          PaymentType
+  status        PaymentStatus @default(PENDING)
+  description   String?
+  reference     String?
+  paidAt        DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("payments")
+}
+
+model FinancialAid {
+  id            String    @id @default(uuid())
+  studentId     String
+  type          String
+  amount        Decimal   @db.Decimal(10, 2)
+  status        String    @default("PENDING")
+  academicYear  String
+  semester      Semester
+  startDate     DateTime
+  endDate       DateTime?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("financial_aid")
+}
