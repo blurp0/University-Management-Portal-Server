@@ -9,6 +9,9 @@ import logger, { morganMiddleware } from './utils/logger.js';
 import { env } from './config/env.js';
 import { configurePassport } from './config/oauth.js';
 import authRoutes from './routes/authRoutes.js';
+import studentRoutes from './routes/studentRoutes.js';
+import enrollmentRoutes from './routes/enrollmentRoutes.js';
+import sectionRoutes from './routes/sectionRoutes.js';
 
 const app = express();
 
@@ -60,6 +63,9 @@ app.get('/health', (_req, res) => {
 
 // API Routes
 app.use('/auth', authRoutes);
+app.use('/api/students', studentRoutes);
+app.use('/api/enrollments', enrollmentRoutes);
+app.use('/api/sections', sectionRoutes);
 
 // Global error handler
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
