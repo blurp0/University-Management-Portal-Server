@@ -29,5 +29,9 @@ prisma/migrations/
 # Server logs
 logs/
 
+# Playwright
+test-results/
+playwright-report/
+
 # Project plan
 SA-University-Management-Portal-Plan.md
